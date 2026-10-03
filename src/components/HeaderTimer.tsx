@@ -13,9 +13,19 @@ function formatTime(totalSeconds: number) {
   return `${minutes}:${seconds}`;
 }
 
-export function HeaderTimer() {
+export function HeaderTimer({
+  onRewardUnlocked,
+}: {
+  onRewardUnlocked: () => void;
+}) {
   const [secondsRemaining, setSecondsRemaining] = useState(INITIAL_SECONDS);
   const isRewardUnlocked = secondsRemaining === 0;
+
+  useEffect(() => {
+    if (isRewardUnlocked) {
+      onRewardUnlocked();
+    }
+  }, [isRewardUnlocked, onRewardUnlocked]);
 
   useEffect(() => {
     if (secondsRemaining === 0) {
@@ -46,8 +56,7 @@ export function HeaderTimer() {
           </time>
           {isRewardUnlocked && (
             <p className="mt-3 max-w-xs text-right font-mono text-xs leading-relaxed text-white/60">
-              &gt; recompensa: usa el código BRUTAL15 en tu próxima
-              dosis.
+              &gt; recompensa: código promocional BRUTAL15
             </p>
           )}
         </div>

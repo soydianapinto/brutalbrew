@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { useZeroAuth } from "@/hooks/useZeroAuth";
 
 interface Message {
@@ -11,41 +12,88 @@ interface Message {
   texto: string;
 }
 
-const initialMessages: Message[] = [
-  {
-    id: "msg-001",
-    handle: "nómada",
-    timestamp: "09:16",
-    texto: "la concentración también necesita un lugar.",
-  },
-  {
-    id: "msg-002",
-    handle: "grano_frío",
-    timestamp: "10:42",
-    texto: "dieciséis horas cambian la conversación del café.",
-  },
-  {
-    id: "msg-003",
-    handle: "modo_avión",
-    timestamp: "11:08",
-    texto: "menos pestañas. más señal.",
-  },
-];
+interface MessageRow {
+  id: string;
+  brutal_uuid: string;
+  handle: string;
+  texto: string;
+  created_at: string;
+}
 
-function createMessageId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
+function formatTimestamp(timestamp: string) {
+  return new Date(timestamp).toLocaleTimeString("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+function mapMessage(row: MessageRow): Message {
+  return {
+    id: row.id,
+    handle: row.handle,
+    timestamp: formatTimestamp(row.created_at),
+    texto: row.texto,
+  };
 }
 
 export function CommunityWall() {
-  const { handle, isReady, saveHandle } = useZeroAuth();
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const { uuid, handle, isReady, saveHandle } = useZeroAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [handleInput, setHandleInput] = useState("");
   const [messageInput, setMessageInput] = useState("");
-  const previousMessageCount = useRef(messages.length);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const previousMessageCount = useRef(0);
+
+  useEffect(() => {
+    const supabaseClient = supabase;
+
+    if (!isReady || !handle || !uuid || !supabaseClient) {
+      return;
+    }
+
+    let isActive = true;
+
+    void supabaseClient
+      .from("community_messages")
+      .select("id, brutal_uuid, handle, texto, created_at")
+      .order("created_at", { ascending: true })
+      .limit(100)
+      .then(({ data, error: queryError }) => {
+        if (!isActive) {
+          return;
+        }
+
+        if (queryError) {
+          setError("no se pudo cargar el muro");
+        } else {
+          setMessages((data as MessageRow[]).map(mapMessage));
+        }
+        setIsLoading(false);
+      });
+
+    const channel = supabaseClient
+      .channel("community-wall")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "community_messages" },
+        (payload) => {
+          const nextMessage = mapMessage(payload.new as MessageRow);
+          setMessages((currentMessages) =>
+            currentMessages.some((message) => message.id === nextMessage.id)
+              ? currentMessages
+              : [...currentMessages, nextMessage],
+          );
+        },
+      )
+      .subscribe();
+
+    return () => {
+      isActive = false;
+      void supabaseClient.removeChannel(channel);
+    };
+  }, [handle, isReady, uuid]);
 
   useEffect(() => {
     if (messages.length > previousMessageCount.current) {
@@ -66,27 +114,36 @@ export function CommunityWall() {
     setHandleInput("");
   }
 
-  function submitMessage(event: FormEvent<HTMLFormElement>) {
+  async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const texto = messageInput.trim();
 
-    if (!texto || !handle) {
+    if (!texto || !handle || !uuid || !supabase || isSending) {
       return;
     }
 
-    setMessages((currentMessages) => [
-      ...currentMessages,
-      {
-        id: createMessageId(),
-        handle,
-        timestamp: new Date().toLocaleTimeString("es-MX", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        texto,
-      },
-    ]);
-    setMessageInput("");
+    setIsSending(true);
+    setError(null);
+
+    const { data, error: insertError } = await supabase
+      .from("community_messages")
+      .insert({ brutal_uuid: uuid, handle, texto })
+      .select("id, brutal_uuid, handle, texto, created_at")
+      .single();
+
+    if (insertError || !data) {
+      setError("no se pudo enviar el mensaje");
+    } else {
+      const nextMessage = mapMessage(data as MessageRow);
+      setMessages((currentMessages) =>
+        currentMessages.some((message) => message.id === nextMessage.id)
+          ? currentMessages
+          : [...currentMessages, nextMessage],
+      );
+      setMessageInput("");
+    }
+
+    setIsSending(false);
   }
 
   if (!isReady) {
@@ -95,7 +152,11 @@ export function CommunityWall() {
 
   return (
     <section className="mx-auto w-full max-w-3xl px-6 pb-40 text-white sm:px-10">
-      {!handle ? (
+      {!isSupabaseConfigured ? (
+        <p className="border-y border-white/15 py-8 font-mono text-sm text-gray-500">
+          &gt; configura supabase para activar el muro compartido
+        </p>
+      ) : !handle ? (
         <form
           onSubmit={submitHandle}
           className="border-y border-white/15 py-8"
@@ -137,6 +198,16 @@ export function CommunityWall() {
             </p>
           </header>
 
+          {isLoading && (
+            <p className="mb-5 font-mono text-xs text-gray-500">
+              &gt; sincronizando muro...
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="mb-5 font-mono text-xs text-gray-500">
+              &gt; {error}
+            </p>
+          )}
           <div className="space-y-5 font-mono text-sm leading-relaxed text-gray-300">
             {messages.map((message) => (
               <p key={message.id}>
@@ -164,13 +235,15 @@ export function CommunityWall() {
                 onChange={(event) => setMessageInput(event.target.value)}
                 maxLength={280}
                 autoComplete="off"
-                className="min-w-0 flex-1 border border-white/25 bg-black px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-gray-600 focus:border-white"
+                disabled={isSending}
+                className="min-w-0 flex-1 border border-white/25 bg-black px-3 py-3 font-mono text-sm text-white outline-none placeholder:text-gray-600 focus:border-white disabled:opacity-50"
                 placeholder="escribe un mensaje..."
               />
               <button
                 type="submit"
                 aria-label="enviar mensaje"
-                className="border-y border-r border-white/25 px-4 font-mono text-white hover:bg-white hover:text-black"
+                disabled={isSending}
+                className="border-y border-r border-white/25 px-4 font-mono text-white hover:bg-white hover:text-black disabled:opacity-50"
               >
                 &gt;
               </button>

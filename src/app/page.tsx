@@ -11,8 +11,12 @@ import { ReorderFAB } from "@/components/ReorderFAB";
 
 export default function Home() {
   const [isBooting, setIsBooting] = useState(true);
+  const [isRewardUnlocked, setIsRewardUnlocked] = useState(false);
   const finishBoot = useCallback(() => {
     setIsBooting(false);
+  }, []);
+  const unlockReward = useCallback(() => {
+    setIsRewardUnlocked(true);
   }, []);
 
   return (
@@ -20,7 +24,7 @@ export default function Home() {
       {isBooting && <BootSequence onComplete={finishBoot} />}
       {!isBooting && (
         <>
-          <HeaderTimer />
+          <HeaderTimer onRewardUnlocked={unlockReward} />
           <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-5 pb-16 pt-32">
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-white/50">
               brutal cold brew
@@ -34,7 +38,7 @@ export default function Home() {
           </section>
           <ImmersionZone />
           <CommunityWall />
-          <ReorderFAB />
+          <ReorderFAB isRewardUnlocked={isRewardUnlocked} />
         </>
       )}
     </main>
