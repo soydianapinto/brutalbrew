@@ -3,8 +3,11 @@
 import { useCallback, useState } from "react";
 
 import { BootSequence } from "@/components/BootSequence";
+import { CommunityWall } from "@/components/CommunityWall";
 import { HeaderTimer } from "@/components/HeaderTimer";
 import { ImmersionZone } from "@/components/ImmersionZone";
+import { OriginBlock } from "@/components/OriginBlock";
+import { ReorderFAB } from "@/components/ReorderFAB";
 
 export default function Home() {
   const [isBooting, setIsBooting] = useState(true);
@@ -27,12 +30,11 @@ export default function Home() {
               <br />
               sin filtros.
             </h1>
-            <p className="mt-8 max-w-sm text-base leading-relaxed text-white/70">
-              escanea, descubre y desbloquea una recompensa para tu próxima
-              dosis.
-            </p>
+            <OriginBlock />
           </section>
           <ImmersionZone />
+          <CommunityWall />
+          <ReorderFAB />
         </>
       )}
     </main>

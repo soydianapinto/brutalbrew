@@ -33,7 +33,7 @@ export function HeaderTimer() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-40 border-b border-white/15 bg-black px-5 py-4">
-      <div className="mx-auto flex w-full max-w-3xl items-start justify-between gap-4">
+      <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4">
         <span className="font-mono text-xs uppercase tracking-[0.18em] text-white/60">
           tiempo restante
         </span>
@@ -46,7 +46,7 @@ export function HeaderTimer() {
           </time>
           {isRewardUnlocked && (
             <p className="mt-3 max-w-xs text-right font-mono text-xs leading-relaxed text-white/60">
-              &gt; recompensa desbloqueada: usa el código BRUTAL15 en tu próxima
+              &gt; recompensa: usa el código BRUTAL15 en tu próxima
               dosis.
             </p>
           )}

@@ -139,7 +139,7 @@ export function ImmersionZone() {
         ))}
       </div>
 
-      <div className="px-6 pb-24 sm:px-10 sm:pb-32">
+      <div className="px-6 pb-12 sm:px-10 sm:pb-16">
         <blockquote className="my-16 border-l-2 border-white pl-6 text-xl italic leading-relaxed text-gray-300 sm:pl-8 sm:text-3xl">
           <p>&ldquo;{activeArticle.quote}&rdquo;</p>
           <cite className="mt-4 block font-mono text-xs not-italic uppercase tracking-[0.18em] text-gray-500">
