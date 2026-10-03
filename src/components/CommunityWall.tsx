@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { useZeroAuth } from "@/hooks/useZeroAuth";
 
@@ -45,6 +45,20 @@ export function CommunityWall() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [handleInput, setHandleInput] = useState("");
   const [messageInput, setMessageInput] = useState("");
+  const previousMessageCount = useRef(messages.length);
+
+  useEffect(() => {
+    if (messages.length > previousMessageCount.current) {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: "smooth",
+        });
+      });
+    }
+
+    previousMessageCount.current = messages.length;
+  }, [messages.length]);
 
   function submitHandle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,7 +94,7 @@ export function CommunityWall() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-6 pb-32 text-white sm:px-10">
+    <section className="mx-auto w-full max-w-3xl px-6 pb-40 text-white sm:px-10">
       {!handle ? (
         <form
           onSubmit={submitHandle}
