@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { useZeroAuth } from "@/hooks/useZeroAuth";
@@ -44,7 +44,6 @@ export function CommunityWall() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const previousMessageCount = useRef(0);
 
   useEffect(() => {
     const supabaseClient = supabase;
@@ -95,19 +94,6 @@ export function CommunityWall() {
     };
   }, [handle, isReady, uuid]);
 
-  useEffect(() => {
-    if (messages.length > previousMessageCount.current) {
-      window.requestAnimationFrame(() => {
-        window.scrollTo({
-          top: document.documentElement.scrollHeight,
-          behavior: "smooth",
-        });
-      });
-    }
-
-    previousMessageCount.current = messages.length;
-  }, [messages.length]);
-
   function submitHandle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     saveHandle(handleInput);
@@ -141,6 +127,12 @@ export function CommunityWall() {
           : [...currentMessages, nextMessage],
       );
       setMessageInput("");
+      window.requestAnimationFrame(() => {
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: "smooth",
+        });
+      });
     }
 
     setIsSending(false);

@@ -242,7 +242,7 @@ export function ImmersionZone() {
           >
             <header className="mb-12 pb-8">
               <p className="mb-5 font-mono text-xs uppercase tracking-[0.2em] text-gray-500">
-                artículo{" "}
+                serie{" "}
                 {String(exploredNodeCount).padStart(2, "0")}/05
                 {exploredNodeCount === RETENTION_NODE_COUNT &&
                   " - lectura completada"}
